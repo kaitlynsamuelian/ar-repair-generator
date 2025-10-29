@@ -159,6 +159,7 @@ export class ARManager {
     video.style.height = '100%';
     video.style.objectFit = 'cover';
     video.style.zIndex = '0';
+    video.style.pointerEvents = 'none'; // Don't block touch events!
     
     video.srcObject = stream;
     container.insertBefore(video, container.firstChild);
@@ -200,17 +201,25 @@ export class ARManager {
     directionalLight.position.set(5, 5, 5);
     this.scene.add(directionalLight);
 
-    // Create a virtual plane for ray casting (invisible)
+    // Create a virtual plane for ray casting (semi-visible for better interaction)
     const geometry = new THREE.PlaneGeometry(20, 20);
     const material = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      color: 0x00ff88,
       transparent: true,
-      opacity: 0, // Invisible
+      opacity: 0.15, // Slightly visible so you can see where to tap
       side: THREE.DoubleSide
     });
     this.referencePlane = new THREE.Mesh(geometry, material);
     this.referencePlane.position.z = -3;
     this.scene.add(this.referencePlane);
+    
+    // Add a grid helper for visual reference in camera mode
+    const gridHelper = new THREE.GridHelper(10, 10, 0x00ff88, 0x004400);
+    gridHelper.material.opacity = 0.3;
+    gridHelper.material.transparent = true;
+    gridHelper.position.z = -3;
+    gridHelper.rotation.x = Math.PI / 2; // Rotate to face camera
+    this.scene.add(gridHelper);
 
     // Setup event listeners
     this.setupEventListeners();
