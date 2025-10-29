@@ -32,7 +32,9 @@ class RepairPartGenerator {
       modeToggleBtn: document.getElementById('mode-toggle-btn'),
       customShapeBtn: document.getElementById('custom-shape-btn'),
       recipeViewer: document.getElementById('recipe-viewer'),
-      recipeSteps: document.getElementById('recipe-steps')
+      recipeSteps: document.getElementById('recipe-steps'),
+      controls: document.getElementById('controls'),
+      controlsToggle: document.getElementById('controls-toggle')
     };
     
     this.preferredMode = localStorage.getItem('preferred_mode') || 'auto'; // auto, demo, camera
@@ -161,6 +163,11 @@ class RepairPartGenerator {
       this.generateCustomShape();
     });
 
+    // Controls toggle
+    this.elements.controlsToggle.addEventListener('click', () => {
+      this.toggleControls();
+    });
+
     // API key input (add a button in UI if needed)
     this.setupAPIKeyInput();
   }
@@ -172,16 +179,17 @@ class RepairPartGenerator {
     // Check if user needs to set API key
     if (!this.aiAssistant.isConfigured()) {
       const notice = document.createElement('div');
+      notice.id = 'api-key-notice';
       notice.style.cssText = `
         position: fixed;
-        top: 60px;
+        bottom: 80px;
         left: 20px;
         right: 20px;
         background: rgba(255, 152, 0, 0.95);
         padding: 12px;
         border-radius: 8px;
         font-size: 12px;
-        z-index: 1001;
+        z-index: 999;
       `;
       notice.innerHTML = `
         <strong>AI Features:</strong> Add OpenAI API key for smart suggestions
@@ -531,6 +539,23 @@ class RepairPartGenerator {
    */
   updateInstructions(message) {
     this.elements.instructions.textContent = message;
+  }
+
+  /**
+   * Toggle controls panel
+   */
+  toggleControls() {
+    const isCollapsed = this.elements.controls.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+      // Expand
+      this.elements.controls.classList.remove('collapsed');
+      this.elements.controlsToggle.textContent = '▼';
+    } else {
+      // Collapse
+      this.elements.controls.classList.add('collapsed');
+      this.elements.controlsToggle.textContent = '▲';
+    }
   }
 }
 
