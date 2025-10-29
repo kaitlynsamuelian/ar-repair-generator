@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>AR Repair Part Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ar.js@2.2.2/aframe/build/aframe-ar.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100vh;
+            -webkit-overflow-scrolling: touch;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        #top-panel {
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            pointer-events: auto;
+        }
+        h1 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        #status {
+            font-size: 14px;
+            color: #4CAF50;
+        }
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .part-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .part-btn {
+            padding: 12px 8px;
+            background: rgba(33, 150, 243, 0.9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .part-btn.active {
+            background: rgba(76, 175, 80, 0.9);
+        }
+        button {
+            padding: 14px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: rgba(100, 100, 100, 0.5);
+        }
+        #measurements {
+            background: rgba(33, 150, 243, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        #instructions {
+            background: rgba(255, 152, 0, 0.9);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="top-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1 style="margin: 0;">AR Repair Part Generator</h1>
+                <button id="mode-toggle-btn" style="
+                    padding: 8px 16px;
+                    background: rgba(76, 175, 80, 0.9);
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                ">📷 Camera Mode</button>
+            </div>
+            <div id="status">Loading...</div>
+            <div id="debug-mode" style="font-size: 10px; color: #888; margin-top: 4px;"></div>
+        </div>
+
+        <div id="controls">
+            <div id="instructions">
+                📱 Tap screen to measure distances
+            </div>
+            
+            <div id="measurements" style="display:none;">
+                <strong>Measurements:</strong>
+                <div id="measurement-list"></div>
+            </div>
+
+            <div class="part-selector">
+                <button class="part-btn" data-part="shim">📏 Shim</button>
+                <button class="part-btn" data-part="washer">⭕ Washer</button>
+                <button class="part-btn" data-part="l_bracket">📐 L-Bracket</button>
+                <button class="part-btn" data-part="u_clamp">🔩 U-Clamp</button>
+                <button class="part-btn" data-part="face_plate">⬜ Plate</button>
+                <button class="part-btn" data-part="clip">📎 Clip</button>
+            </div>
+
+            <button id="generate-btn" disabled>Generate Part</button>
+            <button id="export-btn" style="display:none;">Export STL</button>
+            <button id="clear-btn">Clear All</button>
+        </div>
+    </div>
+
+    <!-- AR Scene will go here -->
+    <div id="ar-scene"></div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+

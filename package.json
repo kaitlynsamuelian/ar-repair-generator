@@ -1,0 +1,21 @@
+{
+  "name": "ar-repair-generator",
+  "version": "1.0.0",
+  "description": "AR-guided measurement tool for generating 3D-printable repair parts",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": ["ar", "3d-printing", "repair", "measurement", "cad"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.158.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
+
