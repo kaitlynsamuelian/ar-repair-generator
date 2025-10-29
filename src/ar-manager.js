@@ -12,6 +12,8 @@ export class ARManager {
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
     this.measurementLine = null;
+    this.measurementCenter = null; // Store center point for AR part placement
+    this.centerIndicator = null; // Visual indicator for part placement
     
     // For demo mode (when AR not available)
     this.demoMode = false;
@@ -337,6 +339,16 @@ export class ARManager {
     const measurementId = `dist_${Object.keys(this.measurements).length + 1}`;
     this.measurements[measurementId] = distanceMM;
 
+    // Calculate and store center point for AR part placement
+    this.measurementCenter = new THREE.Vector3(
+      (p1.x + p2.x) / 2,
+      (p1.y + p2.y) / 2,
+      (p1.z + p2.z) / 2
+    );
+
+    // Add visual indicator at center point
+    this.showCenterIndicator();
+
     // Draw line between points
     this.drawMeasurementLine(p1, p2, distanceMM);
   }
@@ -392,6 +404,50 @@ export class ARManager {
   }
 
   /**
+   * Show visual indicator at measurement center point
+   */
+  showCenterIndicator() {
+    // Remove previous indicator
+    if (this.centerIndicator) {
+      this.scene.remove(this.centerIndicator);
+    }
+
+    if (!this.measurementCenter) return;
+
+    // Create a pulsing sphere at the center point
+    const geometry = new THREE.SphereGeometry(0.08, 16, 16);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x9C27B0, // Purple to match custom shapes
+      emissive: 0x9C27B0,
+      emissiveIntensity: 0.8,
+      transparent: true,
+      opacity: 0.7
+    });
+    this.centerIndicator = new THREE.Mesh(geometry, material);
+    this.centerIndicator.position.copy(this.measurementCenter);
+    this.scene.add(this.centerIndicator);
+
+    // Add pulsing animation
+    let scale = 1;
+    let growing = true;
+    const animate = () => {
+      if (!this.centerIndicator || !this.centerIndicator.parent) return;
+      
+      if (growing) {
+        scale += 0.02;
+        if (scale >= 1.3) growing = false;
+      } else {
+        scale -= 0.02;
+        if (scale <= 0.7) growing = true;
+      }
+      
+      this.centerIndicator.scale.set(scale, scale, scale);
+      requestAnimationFrame(animate);
+    };
+    animate();
+  }
+
+  /**
    * Clear all measurement points
    */
   clearPoints() {
@@ -407,9 +463,16 @@ export class ARManager {
       this.measurementLine = null;
     }
 
+    // Remove center indicator
+    if (this.centerIndicator) {
+      this.scene.remove(this.centerIndicator);
+      this.centerIndicator = null;
+    }
+
     // Clear data
     this.points = [];
     this.measurements = {};
+    this.measurementCenter = null; // Reset measurement center
 
     if (this.onMeasurementUpdate) {
       this.onMeasurementUpdate(this.measurements);
@@ -480,22 +543,33 @@ export class ARManager {
 
     // Add new part
     partMesh.name = 'generated_part';
-    partMesh.position.set(0, 0, 0);
     
-    // Scale to reasonable size for viewing
-    const scale = 0.05; // Scale down for viewing
-    partMesh.scale.set(scale, scale, scale);
+    // Position part at measurement center in AR mode, or at origin in demo mode
+    if (this.measurementCenter && !this.demoMode) {
+      // AR mode: position at measurement location
+      partMesh.position.copy(this.measurementCenter);
+      // Use smaller scale for AR (1:1 would be huge at 1 unit = 10mm)
+      const arScale = 0.01; // 1/100 scale for AR viewing
+      partMesh.scale.set(arScale, arScale, arScale);
+    } else {
+      // Demo mode: position at origin with preview scale
+      partMesh.position.set(0, 0, 0);
+      const demoScale = 0.05; // Larger for demo viewing
+      partMesh.scale.set(demoScale, demoScale, demoScale);
+    }
     
     this.scene.add(partMesh);
     
-    // Add rotation animation
-    const animate = () => {
-      if (partMesh.parent) {
-        partMesh.rotation.y += 0.01;
-        requestAnimationFrame(animate);
-      }
-    };
-    animate();
+    // Add rotation animation (only in demo mode)
+    if (this.demoMode) {
+      const animate = () => {
+        if (partMesh.parent) {
+          partMesh.rotation.y += 0.01;
+          requestAnimationFrame(animate);
+        }
+      };
+      animate();
+    }
   }
 
   /**
