@@ -528,6 +528,14 @@ export class ARManager {
       this.referencePlane.rotation.z += 0.001;
     }
 
+    // Rotate generated part for visual feedback
+    const generatedPart = this.scene.getObjectByName('generated_part');
+    if (generatedPart) {
+      // Slow rotation in AR mode, faster in demo mode
+      const rotationSpeed = this.demoMode ? 0.01 : 0.005;
+      generatedPart.rotation.y += rotationSpeed;
+    }
+
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -549,30 +557,20 @@ export class ARManager {
       // AR mode: position at measurement location
       partMesh.position.copy(this.measurementCenter);
       
-      // Use 0.1 scale to match AR coordinate system
-      // (mesh is in mm, AR space is 1 unit = 10mm, so 0.1 = correct size)
-      const arScale = 0.1;
+      // Use smaller scale for AR viewing (tune this if size is wrong!)
+      // Start with 0.01 - adjust up if too small, down if too large
+      const arScale = 0.01;
       partMesh.scale.set(arScale, arScale, arScale);
-      
-      // No rotation in AR mode (looks more anchored to real world)
     } else {
       // Demo mode: position at origin
       partMesh.position.set(0, 0, 0);
       
-      // Use smaller scale for demo viewing
+      // Use scale for demo viewing
       const demoScale = 0.05;
       partMesh.scale.set(demoScale, demoScale, demoScale);
-      
-      // Add rotation animation in demo mode for preview
-      const animate = () => {
-        if (partMesh.parent) {
-          partMesh.rotation.y += 0.01;
-          requestAnimationFrame(animate);
-        }
-      };
-      animate();
     }
     
+    // Part will rotate via main animate() loop
     this.scene.add(partMesh);
   }
 
