@@ -178,56 +178,8 @@ class RepairPartGenerator {
   setupAPIKeyInput() {
     // Check if user needs to set API key
     if (!this.aiAssistant.isConfigured()) {
-      const notice = document.createElement('div');
-      notice.id = 'api-key-notice';
-      notice.style.cssText = `
-        position: fixed;
-        bottom: 80px;
-        left: 20px;
-        right: 20px;
-        background: rgba(255, 152, 0, 0.95);
-        padding: 12px;
-        border-radius: 8px;
-        font-size: 12px;
-        z-index: 999;
-      `;
-      notice.innerHTML = `
-        <strong>AI Features:</strong> Add OpenAI API key for smart suggestions
-        <button id="add-api-key-btn" style="
-          margin-left: 10px;
-          padding: 4px 8px;
-          background: white;
-          color: #FF9800;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 11px;
-        ">Add Key</button>
-        <button id="skip-ai-btn" style="
-          margin-left: 5px;
-          padding: 4px 8px;
-          background: rgba(0,0,0,0.3);
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 11px;
-        ">Skip (Use Defaults)</button>
-      `;
-      document.body.appendChild(notice);
-
-      document.getElementById('add-api-key-btn').addEventListener('click', () => {
-        const key = prompt('Enter your OpenAI API key:');
-        if (key) {
-          localStorage.setItem('openai_api_key', key);
-          this.aiAssistant = new AIAssistant(key);
-          notice.remove();
-        }
-      });
-
-      document.getElementById('skip-ai-btn').addEventListener('click', () => {
-        notice.remove();
-      });
+      // Don't show the notice - API key is optional
+      console.log('💡 Tip: Add OpenAI API key in .env for AI-powered custom shapes');
     }
   }
 
@@ -548,11 +500,11 @@ class RepairPartGenerator {
     const isCollapsed = this.elements.controls.classList.contains('collapsed');
     
     if (isCollapsed) {
-      // Expand
+      // Expand - show all controls
       this.elements.controls.classList.remove('collapsed');
       this.elements.controlsToggle.textContent = '▼';
     } else {
-      // Collapse
+      // Collapse - hide everything except toggle button
       this.elements.controls.classList.add('collapsed');
       this.elements.controlsToggle.textContent = '▲';
     }

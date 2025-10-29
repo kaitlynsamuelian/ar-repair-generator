@@ -60,32 +60,36 @@
             background: rgba(0, 0, 0, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px 20px 0 0;
-            padding: 20px;
+            padding: 60px 20px 20px 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
             pointer-events: auto;
             transition: transform 0.3s ease;
-            max-height: 70vh;
+            max-height: 80vh;
             overflow-y: auto;
         }
         #controls.collapsed {
-            transform: translateY(calc(100% - 60px));
+            transform: translateY(calc(100% - 50px));
+        }
+        #controls.collapsed > *:not(#controls-toggle) {
+            display: none;
         }
         #controls-toggle {
             position: absolute;
-            top: -40px;
+            top: 10px;
             left: 50%;
             transform: translateX(-50%);
-            width: 60px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.9);
-            border-radius: 20px 20px 0 0;
+            width: 50px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 16px;
+            color: white;
         }
         .part-selector {
             display: grid;
