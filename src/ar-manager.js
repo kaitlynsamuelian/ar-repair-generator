@@ -548,28 +548,25 @@ export class ARManager {
     if (this.measurementCenter && !this.demoMode) {
       // AR mode: position at measurement location
       partMesh.position.copy(this.measurementCenter);
-      // Use smaller scale for AR (1:1 would be huge at 1 unit = 10mm)
-      const arScale = 0.01; // 1/100 scale for AR viewing
-      partMesh.scale.set(arScale, arScale, arScale);
     } else {
-      // Demo mode: position at origin with preview scale
+      // Demo mode: position at origin
       partMesh.position.set(0, 0, 0);
-      const demoScale = 0.05; // Larger for demo viewing
-      partMesh.scale.set(demoScale, demoScale, demoScale);
     }
+    
+    // Use same scale for both modes (it was working before!)
+    const scale = 0.05;
+    partMesh.scale.set(scale, scale, scale);
     
     this.scene.add(partMesh);
     
-    // Add rotation animation (only in demo mode)
-    if (this.demoMode) {
-      const animate = () => {
-        if (partMesh.parent) {
-          partMesh.rotation.y += 0.01;
-          requestAnimationFrame(animate);
-        }
-      };
-      animate();
-    }
+    // Add rotation animation (both modes for preview)
+    const animate = () => {
+      if (partMesh.parent) {
+        partMesh.rotation.y += 0.01;
+        requestAnimationFrame(animate);
+      }
+    };
+    animate();
   }
 
   /**
