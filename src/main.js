@@ -5,16 +5,19 @@ import { AIAssistant } from './ai-assistant.js';
 import { STLExporter, prepareMeshForExport } from './stl-exporter.js';
 import { generatePart, validateParameters } from './part-generators.js';
 import { PART_TYPES, CONSTRAINTS } from './config.js';
+import { ShapeRecipeEngine } from './shape-recipe.js';
 
 class RepairPartGenerator {
   constructor() {
     this.arManager = null;
     this.aiAssistant = null;
     this.stlExporter = new STLExporter();
+    this.recipeEngine = new ShapeRecipeEngine();
     
     this.selectedPartType = null;
     this.currentPart = null;
     this.currentSpec = null;
+    this.currentRecipe = null;
     
     this.elements = {
       status: document.getElementById('status'),
@@ -26,7 +29,10 @@ class RepairPartGenerator {
       clearBtn: document.getElementById('clear-btn'),
       arScene: document.getElementById('ar-scene'),
       debugMode: document.getElementById('debug-mode'),
-      modeToggleBtn: document.getElementById('mode-toggle-btn')
+      modeToggleBtn: document.getElementById('mode-toggle-btn'),
+      customShapeBtn: document.getElementById('custom-shape-btn'),
+      recipeViewer: document.getElementById('recipe-viewer'),
+      recipeSteps: document.getElementById('recipe-steps')
     };
     
     this.preferredMode = localStorage.getItem('preferred_mode') || 'auto'; // auto, demo, camera
@@ -148,6 +154,11 @@ class RepairPartGenerator {
     // Mode toggle button
     this.elements.modeToggleBtn.addEventListener('click', () => {
       this.toggleMode();
+    });
+
+    // Custom shape button
+    this.elements.customShapeBtn.addEventListener('click', () => {
+      this.generateCustomShape();
     });
 
     // API key input (add a button in UI if needed)
@@ -384,6 +395,88 @@ class RepairPartGenerator {
       console.error('Export failed:', error);
       this.updateStatus('Export failed: ' + error.message, 'red');
     }
+  }
+
+  /**
+   * Generate custom shape using AI recipe
+   */
+  async generateCustomShape() {
+    try {
+      // Prompt user for what they want
+      const description = prompt('What do you want to create?\n\nExamples:\n- "Water bottle lid"\n- "Funnel"\n- "Custom knob with hole"\n- "Phone stand"');
+      
+      if (!description) return;
+
+      this.updateStatus('🤖 AI generating shape recipe...', 'orange');
+      
+      // Get measurements
+      const measurements = this.arManager.getMeasurementsForAI();
+      
+      // Generate recipe
+      let recipe;
+      if (this.aiAssistant.isConfigured()) {
+        recipe = await this.aiAssistant.generateShapeRecipe(description, measurements);
+      } else {
+        // Use fallback
+        recipe = this.aiAssistant.fallbackRecipe(description, measurements);
+      }
+      
+      this.currentRecipe = recipe;
+      console.log('📜 Generated recipe:', recipe);
+      
+      // Display recipe
+      this.displayRecipe(recipe);
+      
+      // Execute recipe to generate mesh
+      this.updateStatus('Building 3D model from recipe...', 'orange');
+      this.currentPart = await this.recipeEngine.executeRecipe(recipe);
+      
+      // Add to scene
+      this.arManager.addPartToScene(this.currentPart);
+      
+      // Show export button
+      this.elements.exportBtn.style.display = 'block';
+      
+      this.updateStatus('✨ Custom shape generated!', '#4CAF50');
+      this.updateInstructions(`🎉 ${recipe.description} - Ready to export!`);
+      
+    } catch (error) {
+      console.error('Failed to generate custom shape:', error);
+      this.updateStatus('❌ Failed: ' + error.message, 'red');
+      alert('Failed to generate shape. Try:\n- Simpler description\n- Check AI key if using AI\n- Try again');
+    }
+  }
+
+  /**
+   * Display recipe in UI
+   */
+  displayRecipe(recipe) {
+    this.elements.recipeViewer.style.display = 'block';
+    
+    const stepsHTML = recipe.steps.map(step => `
+      <div style="
+        background: rgba(0,0,0,0.3);
+        padding: 8px;
+        margin: 4px 0;
+        border-radius: 4px;
+        font-size: 12px;
+      ">
+        <div style="font-weight: 600;">
+          ${step.id}. [${step.operation.toUpperCase()}] ${step.shape}
+        </div>
+        <div style="opacity: 0.9; margin-top: 2px;">
+          ${JSON.stringify(step.params)}
+        </div>
+        ${step.note ? `<div style="opacity: 0.7; font-size: 11px; margin-top: 2px;">${step.note}</div>` : ''}
+      </div>
+    `).join('');
+    
+    this.elements.recipeSteps.innerHTML = `
+      <div style="font-size: 13px; margin-bottom: 6px; opacity: 0.9;">
+        ${recipe.description}
+      </div>
+      ${stepsHTML}
+    `;
   }
 
   /**

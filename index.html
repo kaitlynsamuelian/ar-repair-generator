@@ -150,6 +150,23 @@
                 <button class="part-btn" data-part="clip">📎 Clip</button>
             </div>
 
+            <button id="custom-shape-btn" style="
+                padding: 14px;
+                background: linear-gradient(135deg, rgba(156, 39, 176, 0.9), rgba(233, 30, 99, 0.9));
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                margin-bottom: 10px;
+            ">✨ Custom Shape (AI)</button>
+
+            <div id="recipe-viewer" style="display:none; background: rgba(156, 39, 176, 0.9); padding: 12px; border-radius: 8px; margin-bottom: 10px; max-height: 200px; overflow-y: auto;">
+                <div style="font-weight: 600; margin-bottom: 8px;">🎨 Shape Recipe:</div>
+                <div id="recipe-steps"></div>
+            </div>
+
             <button id="generate-btn" disabled>Generate Part</button>
             <button id="export-btn" style="display:none;">Export STL</button>
             <button id="clear-btn">Clear All</button>

@@ -8,14 +8,20 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "keywords": ["ar", "3d-printing", "repair", "measurement", "cad"],
+  "keywords": [
+    "ar",
+    "3d-printing",
+    "repair",
+    "measurement",
+    "cad"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "three": "^0.158.0"
+    "three": "^0.180.0",
+    "three-bvh-csg": "^0.0.17"
   },
   "devDependencies": {
     "vite": "^5.0.0"
   }
 }
-

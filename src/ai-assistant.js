@@ -8,6 +8,49 @@ export class AIAssistant {
   }
 
   /**
+   * Generate shape recipe from user description
+   * @param {string} userDescription - What the user needs
+   * @param {Object} measurements - AR measurements
+   * @returns {Promise<Object>} - Shape recipe
+   */
+  async generateShapeRecipe(userDescription, measurements = {}) {
+    try {
+      const recipePrompt = this.buildRecipePrompt(userDescription, measurements);
+
+      const response = await fetch(this.baseURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: OPENAI_CONFIG.model,
+          temperature: 0.3,
+          max_tokens: 1500,
+          messages: [
+            { role: 'system', content: this.getRecipeSystemPrompt() },
+            { role: 'user', content: recipePrompt }
+          ],
+          response_format: { type: "json_object" }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const recipe = JSON.parse(data.choices[0].message.content);
+
+      return this.validateRecipe(recipe);
+
+    } catch (error) {
+      console.error('AI recipe generation failed:', error);
+      return this.fallbackRecipe(userDescription, measurements);
+    }
+  }
+
+  /**
    * Get AI suggestion for part generation
    * @param {string} userDescription - What the user needs
    * @param {Object} measurements - AR measurements
@@ -219,6 +262,141 @@ Return JSON with part specification.`;
    */
   isConfigured() {
     return !!this.apiKey && this.apiKey !== 'your_openai_api_key_here';
+  }
+
+  /**
+   * Get system prompt for recipe generation
+   */
+  getRecipeSystemPrompt() {
+    return `You are a 3D CAD assistant that generates shape recipes.
+
+Available primitives: cylinder, box, sphere, cone, torus
+Operations: add (combine shapes), subtract (cut away), intersect (keep overlap)
+
+Generate a JSON recipe with these exact fields:
+{
+  "description": "brief description",
+  "steps": [
+    {
+      "id": 1,
+      "operation": "add|subtract|intersect",
+      "shape": "cylinder|box|sphere|cone|torus",
+      "params": {
+        // For cylinder: diameter, height
+        // For box: length, width, height
+        // For sphere: diameter
+        // For cone: top_d, bottom_d, height
+        // For torus: diameter, tube_diameter
+      },
+      "position": [x, y, z],
+      "note": "what this step does"
+    }
+  ]
+}
+
+Rules:
+- All dimensions in millimeters
+- First step must be "add"
+- Use measurements when provided
+- Add 0.3mm clearance for fits
+- Keep it simple (3-6 steps)
+- Position is relative to origin [0,0,0]`;
+  }
+
+  /**
+   * Build recipe generation prompt
+   */
+  buildRecipePrompt(userDescription, measurements) {
+    return `User wants: "${userDescription}"
+
+Measurements available: ${JSON.stringify(measurements, null, 2)}
+
+Generate a shape recipe to build this object.`;
+  }
+
+  /**
+   * Validate recipe structure
+   */
+  validateRecipe(recipe) {
+    if (!recipe.steps || !Array.isArray(recipe.steps)) {
+      throw new Error('Invalid recipe: missing steps array');
+    }
+
+    // Ensure first operation is "add"
+    if (recipe.steps.length > 0 && recipe.steps[0].operation !== 'add') {
+      recipe.steps[0].operation = 'add';
+    }
+
+    // Ensure all steps have required fields
+    recipe.steps = recipe.steps.map((step, index) => ({
+      id: step.id || index + 1,
+      operation: step.operation || 'add',
+      shape: step.shape,
+      params: step.params,
+      position: step.position || [0, 0, 0],
+      note: step.note || ''
+    }));
+
+    return recipe;
+  }
+
+  /**
+   * Fallback recipe if AI fails
+   */
+  fallbackRecipe(userDescription, measurements) {
+    const lowerDesc = userDescription.toLowerCase();
+    const measArray = Object.values(measurements);
+
+    // Simple cylinder (default)
+    let recipe = {
+      description: "Simple cylinder shape",
+      steps: [
+        {
+          id: 1,
+          operation: "add",
+          shape: "cylinder",
+          params: {
+            diameter: measArray[0] || 30,
+            height: measArray[1] || 15
+          },
+          position: [0, 0, 0],
+          note: "Main body"
+        }
+      ]
+    };
+
+    // Check for lid/cap keywords
+    if (lowerDesc.includes('lid') || lowerDesc.includes('cap')) {
+      recipe = {
+        description: "Simple lid",
+        steps: [
+          {
+            id: 1,
+            operation: "add",
+            shape: "cylinder",
+            params: {
+              diameter: (measArray[0] || 28) + 2,
+              height: 15
+            },
+            position: [0, 0, 0],
+            note: "Outer body"
+          },
+          {
+            id: 2,
+            operation: "subtract",
+            shape: "cylinder",
+            params: {
+              diameter: (measArray[0] || 28) - 0.3,
+              height: 12
+            },
+            position: [0, 1.5, 0],
+            note: "Inner cavity"
+          }
+        ]
+      };
+    }
+
+    return recipe;
   }
 }
 
