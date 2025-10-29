@@ -177,7 +177,8 @@ export class ARManager {
       0.1,
       1000
     );
-    this.camera.position.z = 5;
+    this.camera.position.set(0, 0, 5);
+    this.camera.lookAt(0, 0, 0);
 
     // Setup renderer with transparent background
     this.renderer = new THREE.WebGLRenderer({ 
@@ -201,24 +202,23 @@ export class ARManager {
     directionalLight.position.set(5, 5, 5);
     this.scene.add(directionalLight);
 
-    // Create a virtual plane for ray casting (semi-visible for better interaction)
-    const geometry = new THREE.PlaneGeometry(20, 20);
+    // Create a virtual plane for ray casting - positioned directly in front of camera
+    const geometry = new THREE.PlaneGeometry(10, 10);
     const material = new THREE.MeshBasicMaterial({
       color: 0x00ff88,
       transparent: true,
-      opacity: 0.15, // Slightly visible so you can see where to tap
+      opacity: 0.2, // Slightly visible so you can see where to tap
       side: THREE.DoubleSide
     });
     this.referencePlane = new THREE.Mesh(geometry, material);
-    this.referencePlane.position.z = -3;
+    this.referencePlane.position.set(0, 0, 0); // Center it at origin
     this.scene.add(this.referencePlane);
     
     // Add a grid helper for visual reference in camera mode
     const gridHelper = new THREE.GridHelper(10, 10, 0x00ff88, 0x004400);
-    gridHelper.material.opacity = 0.3;
+    gridHelper.material.opacity = 0.4;
     gridHelper.material.transparent = true;
-    gridHelper.position.z = -3;
-    gridHelper.rotation.x = Math.PI / 2; // Rotate to face camera
+    gridHelper.rotation.x = Math.PI / 2; // Lay flat facing camera
     this.scene.add(gridHelper);
 
     // Setup event listeners
@@ -289,20 +289,30 @@ export class ARManager {
    * Handle screen tap for measurement points
    */
   onScreenTap(event) {
+    console.log('🖱️ Screen tapped!', { demoMode: this.demoMode });
+    
     // Calculate mouse position in normalized device coordinates
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    
+    console.log('📍 Mouse coords:', this.mouse.x, this.mouse.y);
 
     // Raycast to find intersection
     this.raycaster.setFromCamera(this.mouse, this.camera);
     
     let intersection;
-    if (this.demoMode && this.referencePlane) {
+    if (this.referencePlane) {
       const intersects = this.raycaster.intersectObject(this.referencePlane);
+      console.log('🎯 Raycaster intersects:', intersects.length);
       if (intersects.length > 0) {
         intersection = intersects[0].point;
+        console.log('✅ Intersection found:', intersection);
+      } else {
+        console.warn('❌ No intersection with plane');
       }
+    } else {
+      console.error('❌ No reference plane found!');
     }
 
     if (intersection) {
