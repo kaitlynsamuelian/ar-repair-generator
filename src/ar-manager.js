@@ -544,29 +544,36 @@ export class ARManager {
     // Add new part
     partMesh.name = 'generated_part';
     
-    // Position part at measurement center in AR mode, or at origin in demo mode
+    // Position and scale based on mode
     if (this.measurementCenter && !this.demoMode) {
       // AR mode: position at measurement location
       partMesh.position.copy(this.measurementCenter);
+      
+      // Use 0.1 scale to match AR coordinate system
+      // (mesh is in mm, AR space is 1 unit = 10mm, so 0.1 = correct size)
+      const arScale = 0.1;
+      partMesh.scale.set(arScale, arScale, arScale);
+      
+      // No rotation in AR mode (looks more anchored to real world)
     } else {
       // Demo mode: position at origin
       partMesh.position.set(0, 0, 0);
+      
+      // Use smaller scale for demo viewing
+      const demoScale = 0.05;
+      partMesh.scale.set(demoScale, demoScale, demoScale);
+      
+      // Add rotation animation in demo mode for preview
+      const animate = () => {
+        if (partMesh.parent) {
+          partMesh.rotation.y += 0.01;
+          requestAnimationFrame(animate);
+        }
+      };
+      animate();
     }
     
-    // Use same scale for both modes (it was working before!)
-    const scale = 0.05;
-    partMesh.scale.set(scale, scale, scale);
-    
     this.scene.add(partMesh);
-    
-    // Add rotation animation (both modes for preview)
-    const animate = () => {
-      if (partMesh.parent) {
-        partMesh.rotation.y += 0.01;
-        requestAnimationFrame(animate);
-      }
-    };
-    animate();
   }
 
   /**
