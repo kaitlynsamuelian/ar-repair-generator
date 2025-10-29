@@ -324,6 +324,12 @@ export class ARManager {
    * Add a measurement point
    */
   addPoint(position) {
+    // Limit to 2 points
+    if (this.points.length >= 2) {
+      console.log('⚠️ Maximum 2 points reached. Clear to add more.');
+      return;
+    }
+    
     // Create visual marker
     const markerGeometry = new THREE.SphereGeometry(0.05, 16, 16);
     const markerMaterial = new THREE.MeshStandardMaterial({
@@ -338,6 +344,8 @@ export class ARManager {
 
     // Store point
     this.points.push(position.clone());
+
+    console.log(`✅ Point ${this.points.length} added`);
 
     // If we have 2 points, calculate distance
     if (this.points.length === 2) {

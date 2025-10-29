@@ -84,14 +84,14 @@ class RepairPartGenerator {
         }
         
         if (isMobile) {
-          this.updateInstructions('📱 Tap the green grid to place measurement points');
+          this.updateInstructions('📱 Tap grid twice to measure (Clear All to restart)');
         } else {
-          this.updateInstructions('🖱️ Click the green grid to place measurement points');
+          this.updateInstructions('🖱️ Click grid twice to measure (Clear All to restart)');
         }
       } else {
         this.updateStatus('📷 Camera Active - Tap to measure!', '#4CAF50');
         this.elements.debugMode.textContent = 'Mode: Camera (AR)';
-        this.updateInstructions('📱 Tap the screen to place measurement points on objects');
+        this.updateInstructions('📱 Tap twice to measure distance (then Clear All to start again)');
         
         // Update toggle button
         this.elements.modeToggleBtn.textContent = '🎮 Demo Mode';
