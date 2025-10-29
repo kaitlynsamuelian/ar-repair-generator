@@ -75,8 +75,7 @@ export class ShapeRecipeEngine {
         break;
 
       default:
-        console.error(`Unknown shape: ${shape}`);
-        geometry = new THREE.BoxGeometry(10, 10, 10);
+        throw new Error(`Unknown shape type: ${shape}`);
     }
 
     return geometry;
@@ -86,8 +85,6 @@ export class ShapeRecipeEngine {
    * Execute a recipe and return the final mesh
    */
   async executeRecipe(recipe) {
-    console.log('🎨 Executing recipe:', recipe.description);
-
     if (!recipe.steps || recipe.steps.length === 0) {
       throw new Error('Recipe has no steps');
     }
@@ -95,7 +92,6 @@ export class ShapeRecipeEngine {
     let resultBrush = null;
 
     for (const step of recipe.steps) {
-      console.log(`Step ${step.id}: ${step.operation} ${step.shape}`, step.params);
 
       // Create primitive geometry
       const geometry = this.createPrimitive(step.shape, step.params);
@@ -130,7 +126,7 @@ export class ShapeRecipeEngine {
             resultBrush = this.evaluator.evaluate(resultBrush, brush, INTERSECTION);
             break;
           default:
-            console.warn(`Unknown operation: ${step.operation}`);
+            throw new Error(`Unknown operation: ${step.operation}`);
         }
       }
     }

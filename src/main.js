@@ -308,9 +308,6 @@ class RepairPartGenerator {
         this.updateInstructions(`💡 ${this.currentSpec.notes}`);
       }
 
-      // Log spec for debugging
-      console.log('Generated spec:', this.currentSpec);
-
     } catch (error) {
       console.error('Failed to generate part:', error);
       this.updateStatus('Failed: ' + error.message, 'red');
@@ -393,7 +390,6 @@ class RepairPartGenerator {
       }
       
       this.currentRecipe = recipe;
-      console.log('📜 Generated recipe:', recipe);
       
       // Display recipe
       this.displayRecipe(recipe);

@@ -27,59 +27,45 @@ export class ARManager {
     try {
       // Check user preference
       if (preferredMode === 'demo') {
-        console.log('User preference: Demo mode');
         this.demoMode = true;
-        // Skip camera initialization, go straight to demo mode
       } else if (preferredMode === 'camera' || preferredMode === 'auto') {
         // Try to initialize camera (works on mobile and desktop)
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        console.log('Attempting to initialize camera...');
         try {
           const videoConstraints = isMobile 
             ? { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-            : { width: { ideal: 1280 }, height: { ideal: 720 } }; // Desktop: use default camera
+            : { width: { ideal: 1280 }, height: { ideal: 720 } };
           
           const stream = await navigator.mediaDevices.getUserMedia({
             video: videoConstraints
           });
           
-          console.log('✅ Camera access granted! Initializing camera mode...');
           await this.initializeWithCamera(container, stream);
           this.demoMode = false;
-          console.log('✅ Camera mode active!');
-          return true; // EXIT HERE - don't continue to demo mode
+          return true;
         } catch (cameraError) {
-          console.error('❌ Camera access failed:', cameraError);
-          console.error('Error name:', cameraError.name);
-          console.error('Error message:', cameraError.message);
-          
           // Store error for display
           this.cameraError = cameraError;
           
           // Show user-friendly error message
           let errorMsg = 'Camera blocked: ';
           if (cameraError.name === 'NotAllowedError') {
-            errorMsg += 'Permission denied. Check Settings > Safari > Camera';
+            errorMsg += 'Permission denied';
           } else if (cameraError.name === 'NotFoundError') {
             errorMsg += 'No camera found';
           } else if (cameraError.name === 'NotSupportedError' || cameraError.name === 'TypeError') {
-            errorMsg += 'HTTPS required for network access';
+            errorMsg += 'HTTPS required';
           } else {
             errorMsg += cameraError.message;
           }
-          console.warn('📱', errorMsg);
           
-          console.log('Falling back to demo mode...');
           this.demoMode = true;
           this.cameraErrorMessage = errorMsg;
-          // Continue to demo mode initialization below
         }
         } else {
-          console.log('Camera not available, using demo mode');
           this.demoMode = true;
-          // Continue to demo mode initialization below
         }
       }
 
@@ -88,8 +74,6 @@ export class ARManager {
         // Camera mode already initialized, exit here
         return true;
       }
-      
-      console.log('Setting up demo mode...');
       
       // Setup Three.js scene
       this.scene = new THREE.Scene();
@@ -145,8 +129,6 @@ export class ARManager {
    * Initialize with camera feed (AR mode)
    */
   async initializeWithCamera(container, stream) {
-    console.log('Setting up camera AR mode...');
-    
     // Create video element for camera feed
     const video = document.createElement('video');
     video.setAttribute('autoplay', '');
@@ -159,13 +141,12 @@ export class ARManager {
     video.style.height = '100%';
     video.style.objectFit = 'cover';
     video.style.zIndex = '0';
-    video.style.pointerEvents = 'none'; // Don't block touch events!
+    video.style.pointerEvents = 'none';
     
     video.srcObject = stream;
     container.insertBefore(video, container.firstChild);
     
     await video.play();
-    console.log('Camera feed started');
     
     // Setup Three.js scene (transparent background to see camera)
     this.scene = new THREE.Scene();
@@ -223,11 +204,9 @@ export class ARManager {
 
     // Setup event listeners
     this.setupEventListeners();
-
+    
     // Start render loop
     this.animate();
-    
-    console.log('Camera AR mode initialized!');
   }
 
   /**
@@ -289,14 +268,10 @@ export class ARManager {
    * Handle screen tap for measurement points
    */
   onScreenTap(event) {
-    console.log('🖱️ Screen tapped!', { demoMode: this.demoMode });
-    
     // Calculate mouse position in normalized device coordinates
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    
-    console.log('📍 Mouse coords:', this.mouse.x, this.mouse.y);
 
     // Raycast to find intersection
     this.raycaster.setFromCamera(this.mouse, this.camera);
@@ -304,15 +279,9 @@ export class ARManager {
     let intersection;
     if (this.referencePlane) {
       const intersects = this.raycaster.intersectObject(this.referencePlane);
-      console.log('🎯 Raycaster intersects:', intersects.length);
       if (intersects.length > 0) {
         intersection = intersects[0].point;
-        console.log('✅ Intersection found:', intersection);
-      } else {
-        console.warn('❌ No intersection with plane');
       }
-    } else {
-      console.error('❌ No reference plane found!');
     }
 
     if (intersection) {
@@ -326,7 +295,6 @@ export class ARManager {
   addPoint(position) {
     // Limit to 2 points
     if (this.points.length >= 2) {
-      console.log('⚠️ Maximum 2 points reached. Clear to add more.');
       return;
     }
     
@@ -344,8 +312,6 @@ export class ARManager {
 
     // Store point
     this.points.push(position.clone());
-
-    console.log(`✅ Point ${this.points.length} added`);
 
     // If we have 2 points, calculate distance
     if (this.points.length === 2) {
@@ -373,8 +339,6 @@ export class ARManager {
 
     // Draw line between points
     this.drawMeasurementLine(p1, p2, distanceMM);
-
-    console.log(`Measured distance: ${distanceMM}mm`);
   }
 
   /**
