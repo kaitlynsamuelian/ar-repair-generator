@@ -337,8 +337,19 @@ class RepairPartGenerator {
       
       prepareMeshForExport(meshToExport);
 
-      // Generate filename
-      const partName = this.currentSpec.part_type || 'part';
+      // Generate filename - handle both traditional parts and custom shapes
+      let partName = 'part';
+      if (this.currentSpec && this.currentSpec.part_type) {
+        // Traditional part (shim, washer, etc.)
+        partName = this.currentSpec.part_type;
+      } else if (this.currentRecipe && this.currentRecipe.description) {
+        // Custom shape from recipe
+        partName = this.currentRecipe.description
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
+      }
+      
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = `${partName}_${timestamp}.stl`;
 
