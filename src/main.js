@@ -300,12 +300,19 @@ class RepairPartGenerator {
       // Show export button
       this.elements.exportBtn.style.display = 'block';
 
-      // Update status
-      this.updateStatus('Part generated! Rotate to view', 'green');
+      // Update status based on mode
+      if (this.arManager.demoMode) {
+        this.updateStatus('✅ Part generated! Rotating in center', '#4CAF50');
+      } else {
+        this.updateStatus('✅ Part generated! Overlaid at measurement point', '#4CAF50');
+      }
       
       // Show AI notes if available
       if (this.currentSpec.notes) {
         this.updateInstructions(`💡 ${this.currentSpec.notes}`);
+      } else {
+        const mode = this.arManager.demoMode ? 'on grid' : 'over camera feed';
+        this.updateInstructions(`🎉 Part appears ${mode}. Export when ready!`);
       }
 
     } catch (error) {
@@ -404,7 +411,12 @@ class RepairPartGenerator {
       // Show export button
       this.elements.exportBtn.style.display = 'block';
       
-      this.updateStatus('✨ Custom shape generated!', '#4CAF50');
+      // Update status based on mode
+      if (this.arManager.demoMode) {
+        this.updateStatus('✨ Custom shape generated!', '#9C27B0');
+      } else {
+        this.updateStatus('✨ Custom shape overlaid on camera!', '#9C27B0');
+      }
       this.updateInstructions(`🎉 ${recipe.description} - Ready to export!`);
       
     } catch (error) {

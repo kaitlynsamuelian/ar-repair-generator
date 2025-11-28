@@ -8,6 +8,7 @@ export class ARManager {
     this.scene = null;
     this.camera = null;
     this.renderer = null;
+    this.video = null; // Video element for camera feed
     this.markers = [];
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -132,23 +133,30 @@ export class ARManager {
    */
   async initializeWithCamera(container, stream) {
     // Create video element for camera feed
-    const video = document.createElement('video');
-    video.setAttribute('autoplay', '');
-    video.setAttribute('playsinline', '');
-    video.setAttribute('muted', '');
-    video.style.position = 'fixed';
-    video.style.top = '0';
-    video.style.left = '0';
-    video.style.width = '100%';
-    video.style.height = '100%';
-    video.style.objectFit = 'cover';
-    video.style.zIndex = '0';
-    video.style.pointerEvents = 'none';
+    this.video = document.createElement('video');
+    this.video.setAttribute('autoplay', '');
+    this.video.setAttribute('playsinline', '');
+    this.video.setAttribute('muted', '');
+    this.video.style.position = 'fixed';
+    this.video.style.top = '0';
+    this.video.style.left = '0';
+    this.video.style.width = '100%';
+    this.video.style.height = '100%';
+    this.video.style.objectFit = 'cover';
+    this.video.style.zIndex = '0';
+    this.video.style.pointerEvents = 'none';
     
-    video.srcObject = stream;
-    container.insertBefore(video, container.firstChild);
+    this.video.srcObject = stream;
+    container.insertBefore(this.video, container.firstChild);
     
-    await video.play();
+    await this.video.play();
+    
+    // Keep video playing continuously
+    this.video.addEventListener('pause', () => {
+      if (this.video && this.video.srcObject) {
+        this.video.play().catch(err => console.log('Video play error:', err));
+      }
+    });
     
     // Setup Three.js scene (transparent background to see camera)
     this.scene = new THREE.Scene();
@@ -166,7 +174,8 @@ export class ARManager {
     // Setup renderer with transparent background
     this.renderer = new THREE.WebGLRenderer({ 
       antialias: true,
-      alpha: true // Transparent to see camera feed
+      alpha: true, // Transparent to see camera feed
+      preserveDrawingBuffer: false // Better performance
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -177,20 +186,25 @@ export class ARManager {
     this.renderer.domElement.style.pointerEvents = 'auto';
     container.appendChild(this.renderer.domElement);
 
-    // Add lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    // Add lighting for better part visibility
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 5, 5);
     this.scene.add(directionalLight);
+    
+    // Add another light from below for better visibility
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    fillLight.position.set(-5, -5, 5);
+    this.scene.add(fillLight);
 
     // Create a virtual plane for ray casting - positioned directly in front of camera
     const geometry = new THREE.PlaneGeometry(10, 10);
     const material = new THREE.MeshBasicMaterial({
       color: 0x00ff88,
       transparent: true,
-      opacity: 0.2, // Slightly visible so you can see where to tap
+      opacity: 0.15, // Slightly visible so you can see where to tap
       side: THREE.DoubleSide
     });
     this.referencePlane = new THREE.Mesh(geometry, material);
@@ -199,7 +213,7 @@ export class ARManager {
     
     // Add a grid helper for visual reference in camera mode
     const gridHelper = new THREE.GridHelper(10, 10, 0x00ff88, 0x004400);
-    gridHelper.material.opacity = 0.4;
+    gridHelper.material.opacity = 0.3;
     gridHelper.material.transparent = true;
     gridHelper.rotation.x = Math.PI / 2; // Lay flat facing camera
     this.scene.add(gridHelper);
@@ -300,17 +314,34 @@ export class ARManager {
       return;
     }
     
-    // Create visual marker
-    const markerGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+    // Create visual marker - larger and brighter for camera mode
+    const markerSize = this.demoMode ? 0.05 : 0.08;
+    const markerGeometry = new THREE.SphereGeometry(markerSize, 16, 16);
     const markerMaterial = new THREE.MeshStandardMaterial({
       color: 0xFF5722,
       emissive: 0xFF5722,
-      emissiveIntensity: 0.5
+      emissiveIntensity: 0.8,
+      metalness: 0.3,
+      roughness: 0.4
     });
     const marker = new THREE.Mesh(markerGeometry, markerMaterial);
     marker.position.copy(position);
     this.scene.add(marker);
     this.markers.push(marker);
+    
+    // Add a ring around the marker for better visibility
+    const ringGeometry = new THREE.RingGeometry(markerSize * 1.2, markerSize * 1.5, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0xFFFFFF,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.position.copy(position);
+    ring.lookAt(this.camera.position);
+    this.scene.add(ring);
+    this.markers.push(ring);
 
     // Store point
     this.points.push(position.clone());
@@ -362,13 +393,24 @@ export class ARManager {
       this.scene.remove(this.measurementLine);
     }
 
-    // Create line
-    const material = new THREE.LineBasicMaterial({ 
+    // Create thicker line using a cylinder for better visibility
+    const direction = new THREE.Vector3().subVectors(p2, p1);
+    const length = direction.length();
+    const lineGeometry = new THREE.CylinderGeometry(0.02, 0.02, length, 8);
+    const lineMaterial = new THREE.MeshBasicMaterial({ 
       color: 0x00FF00,
-      linewidth: 2
+      transparent: true,
+      opacity: 0.8
     });
-    const geometry = new THREE.BufferGeometry().setFromPoints([p1, p2]);
-    this.measurementLine = new THREE.Line(geometry, material);
+    this.measurementLine = new THREE.Mesh(lineGeometry, lineMaterial);
+    
+    // Position and orient the cylinder
+    this.measurementLine.position.copy(p1).lerp(p2, 0.5);
+    this.measurementLine.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      direction.normalize()
+    );
+    
     this.scene.add(this.measurementLine);
 
     // Add label (using sprite with canvas texture)
@@ -381,24 +423,40 @@ export class ARManager {
   addDistanceLabel(p1, p2, distance) {
     const midpoint = new THREE.Vector3().lerpVectors(p1, p2, 0.5);
     
-    // Create canvas for text
+    // Create canvas for text - higher resolution for better visibility
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 64;
+    canvas.width = 512;
+    canvas.height = 128;
     
-    context.fillStyle = '#000000';
+    // Background with border for better visibility over camera
+    context.fillStyle = 'rgba(0, 0, 0, 0.85)';
     context.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Border
+    context.strokeStyle = '#00FF00';
+    context.lineWidth = 8;
+    context.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+    
+    // Text
     context.fillStyle = '#00FF00';
-    context.font = 'Bold 32px Arial';
+    context.font = 'Bold 56px Arial';
     context.textAlign = 'center';
-    context.fillText(`${distance}mm`, 128, 40);
+    context.textBaseline = 'middle';
+    context.fillText(`${distance}mm`, 256, 64);
 
     const texture = new THREE.CanvasTexture(canvas);
-    const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+      map: texture,
+      depthTest: false // Always visible on top
+    });
     const sprite = new THREE.Sprite(spriteMaterial);
     sprite.position.copy(midpoint);
-    sprite.scale.set(1, 0.25, 1);
+    
+    // Slightly larger for better visibility
+    const labelScale = this.demoMode ? 1.0 : 1.5;
+    sprite.scale.set(labelScale, labelScale * 0.25, 1);
+    
     this.scene.add(sprite);
     this.markers.push(sprite);
   }
@@ -518,10 +576,18 @@ export class ARManager {
   }
 
   /**
-   * Animation loop
+   * Animation loop - keeps running continuously
    */
   animate() {
+    // Keep animation loop running
     requestAnimationFrame(() => this.animate());
+    
+    // Ensure video stays playing in camera mode
+    if (this.video && !this.demoMode) {
+      if (this.video.paused) {
+        this.video.play().catch(err => console.log('Video play retry:', err));
+      }
+    }
     
     // Rotate reference plane slowly for visual effect (demo mode only)
     if (this.referencePlane && this.demoMode) {
@@ -531,12 +597,21 @@ export class ARManager {
     // Rotate generated part for visual feedback
     const generatedPart = this.scene.getObjectByName('generated_part');
     if (generatedPart) {
-      // Slow rotation in AR mode, faster in demo mode
-      const rotationSpeed = this.demoMode ? 0.01 : 0.005;
+      // Smooth rotation for preview
+      // Slower in AR mode so you can see details, faster in demo mode
+      const rotationSpeed = this.demoMode ? 0.01 : 0.008;
       generatedPart.rotation.y += rotationSpeed;
+      
+      // Slight bob up and down for visual interest (optional)
+      const time = Date.now() * 0.001;
+      const bobAmount = this.demoMode ? 0.05 : 0.02;
+      generatedPart.position.y += Math.sin(time * 2) * 0.002 * bobAmount;
     }
 
-    this.renderer.render(this.scene, this.camera);
+    // Render the scene
+    if (this.renderer && this.scene && this.camera) {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 
   /**
@@ -554,13 +629,16 @@ export class ARManager {
     
     // Position and scale based on mode
     if (this.measurementCenter && !this.demoMode) {
-      // AR mode: position at measurement location
+      // Camera AR mode: position at measurement location as overlay
+      // The part appears where you measured, centered between the two points
       partMesh.position.copy(this.measurementCenter);
       
-      // Use smaller scale for AR viewing (tune this if size is wrong!)
-      // Start with 0.01 - adjust up if too small, down if too large
-      const arScale = 0.01;
+      // Slightly larger scale for better visibility in camera mode
+      // This makes it easier to see details
+      const arScale = 0.015;
       partMesh.scale.set(arScale, arScale, arScale);
+      
+      console.log('✅ Part positioned at measurement center:', this.measurementCenter);
     } else {
       // Demo mode: position at origin
       partMesh.position.set(0, 0, 0);
@@ -570,19 +648,47 @@ export class ARManager {
       partMesh.scale.set(demoScale, demoScale, demoScale);
     }
     
-    // Part will rotate via main animate() loop
+    // Part will rotate via main animate() loop for visual feedback
     this.scene.add(partMesh);
+    
+    console.log('✅ Part added to scene in', this.demoMode ? 'demo' : 'camera', 'mode');
   }
 
   /**
    * Cleanup
    */
   dispose() {
+    // Stop video stream
+    if (this.video && this.video.srcObject) {
+      const tracks = this.video.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      this.video.srcObject = null;
+      if (this.video.parentElement) {
+        this.video.parentElement.removeChild(this.video);
+      }
+      this.video = null;
+    }
+    
+    // Dispose renderer
     if (this.renderer) {
       this.renderer.dispose();
       if (this.renderer.domElement.parentElement) {
         this.renderer.domElement.parentElement.removeChild(this.renderer.domElement);
       }
+    }
+    
+    // Clear scene
+    if (this.scene) {
+      this.scene.traverse(object => {
+        if (object.geometry) object.geometry.dispose();
+        if (object.material) {
+          if (Array.isArray(object.material)) {
+            object.material.forEach(material => material.dispose());
+          } else {
+            object.material.dispose();
+          }
+        }
+      });
     }
   }
 }
