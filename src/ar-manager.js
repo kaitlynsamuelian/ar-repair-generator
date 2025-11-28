@@ -8,6 +8,7 @@ export class ARManager {
     this.scene = null;
     this.camera = null;
     this.renderer = null;
+    this.video = null; // Store video element reference
     this.markers = [];
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2();
@@ -132,23 +133,23 @@ export class ARManager {
    */
   async initializeWithCamera(container, stream) {
     // Create video element for camera feed
-    const video = document.createElement('video');
-    video.setAttribute('autoplay', '');
-    video.setAttribute('playsinline', '');
-    video.setAttribute('muted', '');
-    video.style.position = 'fixed';
-    video.style.top = '0';
-    video.style.left = '0';
-    video.style.width = '100%';
-    video.style.height = '100%';
-    video.style.objectFit = 'cover';
-    video.style.zIndex = '0';
-    video.style.pointerEvents = 'none';
+    this.video = document.createElement('video');
+    this.video.setAttribute('autoplay', '');
+    this.video.setAttribute('playsinline', '');
+    this.video.setAttribute('muted', '');
+    this.video.style.position = 'fixed';
+    this.video.style.top = '0';
+    this.video.style.left = '0';
+    this.video.style.width = '100%';
+    this.video.style.height = '100%';
+    this.video.style.objectFit = 'cover';
+    this.video.style.zIndex = '0';
+    this.video.style.pointerEvents = 'none';
     
-    video.srcObject = stream;
-    container.insertBefore(video, container.firstChild);
+    this.video.srcObject = stream;
+    container.insertBefore(this.video, container.firstChild);
     
-    await video.play();
+    await this.video.play();
     
     // Setup Three.js scene (transparent background to see camera)
     this.scene = new THREE.Scene();
@@ -522,6 +523,11 @@ export class ARManager {
    */
   animate() {
     requestAnimationFrame(() => this.animate());
+    
+    // Keep video playing in camera mode
+    if (this.video && !this.demoMode && this.video.paused) {
+      this.video.play().catch(err => console.log('Video play error:', err));
+    }
     
     // Rotate reference plane slowly for visual effect (demo mode only)
     if (this.referencePlane && this.demoMode) {
