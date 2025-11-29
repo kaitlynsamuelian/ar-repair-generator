@@ -234,10 +234,18 @@ export class ARManager {
    * Initialize AR.js marker tracking
    */
   async initializeMarkerTracking() {
-    // Check if AR.js is loaded
-    if (typeof THREEx === 'undefined' || !THREEx.ArToolkitSource) {
-      throw new Error('AR.js library not loaded');
+    // Simple wait for AR.js with timeout
+    const maxWait = 3000;
+    const startTime = Date.now();
+    
+    while (typeof THREEx === 'undefined' || !THREEx.ArToolkitSource) {
+      if (Date.now() - startTime > maxWait) {
+        throw new Error('AR.js library not loaded');
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
+    
+    console.log('✅ AR.js library loaded');
 
     // Create AR.js source (from video)
     this.arToolkitSource = new THREEx.ArToolkitSource({
