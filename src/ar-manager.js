@@ -19,15 +19,6 @@ export class ARManager {
     // For demo mode (when AR not available)
     this.demoMode = false;
     this.referencePlane = null;
-    
-    // For AR marker tracking
-    this.markerMode = false; // Whether using AR markers
-    this.arToolkitSource = null;
-    this.arToolkitContext = null;
-    this.markerRoot = null; // Root object for marker-based positioning
-    this.markerDetected = false; // Whether marker is currently visible
-    this.markerSize = 50; // Physical markoptier size in mm
-    this.onMarkerStatusChange = null; // Callback for marker status changes
   }
 
   /**
@@ -195,33 +186,23 @@ export class ARManager {
     directionalLight.position.set(5, 5, 5);
     this.scene.add(directionalLight);
 
-    // Try to initialize AR marker tracking
-    try {
-      await this.initializeMarkerTracking();
-      this.markerMode = true;
-      console.log('✅ Marker tracking initialized');
-    } catch (error) {
-      console.warn('Marker tracking failed, using virtual plane:', error);
-      this.markerMode = false;
-      
-      // Fallback to virtual plane
-      const geometry = new THREE.PlaneGeometry(10, 10);
-      const material = new THREE.MeshBasicMaterial({
-        color: 0x00ff88,
-        transparent: true,
-        opacity: 0.2,
-        side: THREE.DoubleSide
-      });
-      this.referencePlane = new THREE.Mesh(geometry, material);
-      this.referencePlane.position.set(0, 0, 0);
-      this.scene.add(this.referencePlane);
-      
-      const gridHelper = new THREE.GridHelper(10, 10, 0x00ff88, 0x004400);
-      gridHelper.material.opacity = 0.4;
-      gridHelper.material.transparent = true;
-      gridHelper.rotation.x = Math.PI / 2;
-      this.scene.add(gridHelper);
-    }
+    // Create virtual plane for measurements
+    const geometry = new THREE.PlaneGeometry(10, 10);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x00ff88,
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide
+    });
+    this.referencePlane = new THREE.Mesh(geometry, material);
+    this.referencePlane.position.set(0, 0, 0);
+    this.scene.add(this.referencePlane);
+    
+    const gridHelper = new THREE.GridHelper(10, 10, 0x00ff88, 0x004400);
+    gridHelper.material.opacity = 0.4;
+    gridHelper.material.transparent = true;
+    gridHelper.rotation.x = Math.PI / 2;
+    this.scene.add(gridHelper);
 
     // Setup event listeners
     this.setupEventListeners();
@@ -230,82 +211,6 @@ export class ARManager {
     this.animate();
   }
 
-  /**
-   * Initialize AR.js marker tracking
-   */
-  async initializeMarkerTracking() {
-    // Simple wait for AR.js with timeout
-    const maxWait = 3000;
-    const startTime = Date.now();
-    
-    while (typeof THREEx === 'undefined' || !THREEx.ArToolkitSource) {
-      if (Date.now() - startTime > maxWait) {
-        throw new Error('AR.js library not loaded');
-      }
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    
-    console.log('✅ AR.js library loaded');
-
-    // Create AR.js source (from video)
-    this.arToolkitSource = new THREEx.ArToolkitSource({
-      sourceType: 'webcam',
-      sourceWidth: window.innerWidth,
-      sourceHeight: window.innerHeight,
-      displayWidth: window.innerWidth,
-      displayHeight: window.innerHeight,
-    });
-
-    // Initialize the source
-    return new Promise((resolve, reject) => {
-      this.arToolkitSource.init(() => {
-        // Adjust camera projection matrix
-        this.arToolkitSource.onResize();
-        
-        // Create AR.js context for marker detection
-        this.arToolkitContext = new THREEx.ArToolkitContext({
-          cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat',
-          detectionMode: 'mono_and_matrix',
-          matrixCodeType: '3x3',
-          maxDetectionRate: 60,
-          canvasWidth: 640,
-          canvasHeight: 480
-        });
-
-        this.arToolkitContext.init(() => {
-          // Update camera projection
-          this.camera.projectionMatrix.copy(this.arToolkitContext.getProjectionMatrix());
-
-          // Create marker root - this is where we'll attach measurements
-          this.markerRoot = new THREE.Group();
-          this.markerRoot.name = 'markerRoot';
-          this.scene.add(this.markerRoot);
-
-          // Create AR marker controls for barcode marker ID 0
-          this.markerControls = new THREEx.ArMarkerControls(this.arToolkitContext, this.markerRoot, {
-            type: 'barcode',
-            barcodeValue: 0,
-            size: this.markerSize / 1000, // Convert mm to meters for AR.js
-            minConfidence: 0.6
-          });
-
-          // Create large invisible reference plane centered on marker for tap detection
-          const planeGeometry = new THREE.PlaneGeometry(10, 10); // Large plane for tapping anywhere
-          const planeMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ff88,
-            transparent: true,
-            opacity: 0, // Invisible - just for hit detection
-            side: THREE.DoubleSide
-          });
-          this.referencePlane = new THREE.Mesh(planeGeometry, planeMaterial);
-          this.markerRoot.add(this.referencePlane);
-
-          console.log('✅ AR.js marker tracking initialized');
-          resolve();
-        });
-      }, reject);
-    });
-  }
 
   /**
    * Create a reference plane for measurements (demo mode)
@@ -430,18 +335,9 @@ export class ARManager {
     const p2 = this.points[1];
     const distance = p1.distanceTo(p2);
 
-    // Calculate distance in mm based on mode
-    let distanceMM;
-    if (this.markerMode) {
-      // In marker mode, distances are in meters (AR.js standard)
-      // Convert to mm: 1 meter = 1000mm
-      distanceMM = Math.round(distance * 1000 * 10) / 10;
-      console.log(`✅ Marker-based measurement: ${distanceMM}mm (${distance}m)`);
-    } else {
-      // Demo/virtual plane mode: assuming 1 unit = 10mm
-      distanceMM = Math.round(distance * 10 * 10) / 10;
-      console.log(`📏 Virtual measurement: ${distanceMM}mm`);
-    }
+    // Calculate distance in mm (assuming 1 unit = 10mm)
+    const distanceMM = Math.round(distance * 10 * 10) / 10;
+    console.log(`📏 Measurement: ${distanceMM}mm`);
     
     const measurementId = `dist_${Object.keys(this.measurements).length + 1}`;
     this.measurements[measurementId] = distanceMM;
@@ -633,20 +529,6 @@ export class ARManager {
     // Keep video playing in camera mode
     if (this.video && !this.demoMode && this.video.paused) {
       this.video.play().catch(err => console.log('Video play error:', err));
-    }
-    
-    // Update AR.js marker tracking
-    if (this.markerMode && this.arToolkitContext && this.arToolkitSource && this.arToolkitSource.ready) {
-      this.arToolkitContext.update(this.arToolkitSource.domElement);
-      
-      // Check if marker is detected
-      const wasDetected = this.markerDetected;
-      this.markerDetected = this.markerRoot && this.markerRoot.visible;
-      
-      // Trigger callback if status changed
-      if (wasDetected !== this.markerDetected && this.onMarkerStatusChange) {
-        this.onMarkerStatusChange(this.markerDetected);
-      }
     }
     
     // Rotate reference plane slowly for visual effect (demo mode only)

@@ -66,11 +66,6 @@ class RepairPartGenerator {
         this.onMeasurementsUpdated(measurements);
       };
 
-      // Setup marker status callback
-      this.arManager.onMarkerStatusChange = (detected) => {
-        this.onMarkerStatusChanged(detected);
-      };
-
       // Initialize AI Assistant
       const apiKey = this.getAPIKey();
       this.aiAssistant = new AIAssistant(apiKey);
@@ -102,16 +97,9 @@ class RepairPartGenerator {
           this.updateInstructions('🖱️ Click the green grid to place measurement points');
         }
       } else {
-        // Check if marker mode is enabled
-        if (this.arManager.markerMode) {
-          this.updateStatus('📷 Camera Active - Point at marker for accuracy', '#666');
-          this.elements.debugMode.textContent = 'Mode: AR Marker Tracking';
-          this.updateInstructions('🎯 Show the printed marker (50mm) to enable accurate measurements');
-        } else {
-          this.updateStatus('📷 Camera Active - Tap to measure!', '#000');
-          this.elements.debugMode.textContent = 'Mode: Camera (AR)';
-          this.updateInstructions('📱 Tap the screen to place measurement points on objects');
-        }
+        this.updateStatus('📷 Camera Active - Tap to measure!', '#000');
+        this.elements.debugMode.textContent = 'Mode: Camera (AR)';
+        this.updateInstructions('📱 Tap the screen to place measurement points on objects');
         
         // Update toggle button
         this.elements.modeToggleBtn.textContent = '🎮 Demo Mode';
@@ -124,18 +112,6 @@ class RepairPartGenerator {
     }
   }
 
-  /**
-   * Handle marker detection status change
-   */
-  onMarkerStatusChanged(detected) {
-    if (detected) {
-      this.updateStatus('✅ Marker Detected - Accurate measurements enabled', '#000');
-      this.updateInstructions('📏 Tap anywhere on screen to measure. Marker provides scale accuracy.');
-    } else {
-      this.updateStatus('📷 Camera Active - Point at marker for accuracy', '#666');
-      this.updateInstructions('🎯 Show the printed marker to enable accurate measurements');
-    }
-  }
 
   /**
    * Get OpenAI API key from localStorage or environment
