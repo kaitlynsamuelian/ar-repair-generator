@@ -47,10 +47,10 @@ class RepairPartGenerator {
     try {
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
-        this.updateStatus('Requesting camera access...', 'orange');
+        this.updateStatus('Requesting camera access...', '#666');
         this.updateInstructions('📷 Please allow camera access when prompted');
       } else {
-        this.updateStatus('Initializing...', 'orange');
+        this.updateStatus('Initializing...', '#666');
       }
 
       // Initialize AR Manager with preferred mode
@@ -77,7 +77,7 @@ class RepairPartGenerator {
       if (this.arManager.demoMode) {
         // Detect if mobile
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        this.updateStatus('Demo Mode - Ready!', '#4CAF50');
+        this.updateStatus('Demo Mode - Ready!', '#000');
         
         // Update toggle button
         this.elements.modeToggleBtn.textContent = '📷 Try Camera';
@@ -97,7 +97,7 @@ class RepairPartGenerator {
           this.updateInstructions('🖱️ Click the green grid to place measurement points');
         }
       } else {
-        this.updateStatus('📷 Camera Active - Tap to measure!', '#4CAF50');
+        this.updateStatus('📷 Camera Active - Tap to measure!', '#000');
         this.elements.debugMode.textContent = 'Mode: Camera (AR)';
         this.updateInstructions('📱 Tap the screen to place measurement points on objects');
         
@@ -108,7 +108,7 @@ class RepairPartGenerator {
 
     } catch (error) {
       console.error('Initialization failed:', error);
-      this.updateStatus('Failed to initialize - ' + error.message, 'red');
+      this.updateStatus('❌ Failed to initialize - ' + error.message, '#000');
     }
   }
 
@@ -247,7 +247,7 @@ class RepairPartGenerator {
    */
   async generatePart() {
     try {
-      this.updateStatus('Generating part...', 'orange');
+      this.updateStatus('⚙️ Generating part...', '#666');
       
       // Get measurements
       const measurements = this.arManager.getMeasurementsForAI();
@@ -301,7 +301,7 @@ class RepairPartGenerator {
       this.elements.exportBtn.style.display = 'block';
 
       // Update status
-      this.updateStatus('Part generated! Rotate to view', 'green');
+      this.updateStatus('✅ Part generated! Rotate to view', '#000');
       
       // Show AI notes if available
       if (this.currentSpec.notes) {
@@ -310,7 +310,7 @@ class RepairPartGenerator {
 
     } catch (error) {
       console.error('Failed to generate part:', error);
-      this.updateStatus('Failed: ' + error.message, 'red');
+      this.updateStatus('❌ Failed: ' + error.message, '#000');
     }
   }
 
@@ -324,7 +324,7 @@ class RepairPartGenerator {
     }
 
     try {
-      this.updateStatus('Exporting STL...', 'orange');
+      this.updateStatus('📦 Exporting STL...', '#666');
 
       // Prepare mesh for export
       const meshToExport = this.currentPart.clone();
@@ -353,7 +353,7 @@ class RepairPartGenerator {
       // Download
       this.stlExporter.download(meshToExport, filename, true);
 
-      this.updateStatus('STL exported successfully!', 'green');
+      this.updateStatus('✅ STL exported successfully!', '#000');
 
       setTimeout(() => {
         this.updateInstructions('🎉 Ready to print! Load the STL file in your slicer.');
@@ -361,7 +361,7 @@ class RepairPartGenerator {
 
     } catch (error) {
       console.error('Export failed:', error);
-      this.updateStatus('Export failed: ' + error.message, 'red');
+      this.updateStatus('❌ Export failed: ' + error.message, '#000');
     }
   }
 
@@ -375,7 +375,7 @@ class RepairPartGenerator {
       
       if (!description) return;
 
-      this.updateStatus('🤖 AI generating shape recipe...', 'orange');
+      this.updateStatus('🤖 AI generating shape recipe...', '#666');
       
       // Get measurements
       const measurements = this.arManager.getMeasurementsForAI();
@@ -395,7 +395,7 @@ class RepairPartGenerator {
       this.displayRecipe(recipe);
       
       // Execute recipe to generate mesh
-      this.updateStatus('Building 3D model from recipe...', 'orange');
+      this.updateStatus('⚙️ Building 3D model from recipe...', '#666');
       this.currentPart = await this.recipeEngine.executeRecipe(recipe);
       
       // Add to scene
@@ -404,12 +404,12 @@ class RepairPartGenerator {
       // Show export button
       this.elements.exportBtn.style.display = 'block';
       
-      this.updateStatus('✨ Custom shape generated!', '#4CAF50');
+      this.updateStatus('✨ Custom shape generated!', '#000');
       this.updateInstructions(`🎉 ${recipe.description} - Ready to export!`);
       
     } catch (error) {
       console.error('Failed to generate custom shape:', error);
-      this.updateStatus('❌ Failed: ' + error.message, 'red');
+      this.updateStatus('❌ Failed: ' + error.message, '#000');
       alert('Failed to generate shape. Try:\n- Simpler description\n- Check AI key if using AI\n- Try again');
     }
   }
@@ -422,24 +422,26 @@ class RepairPartGenerator {
     
     const stepsHTML = recipe.steps.map(step => `
       <div style="
-        background: rgba(0,0,0,0.3);
-        padding: 8px;
-        margin: 4px 0;
-        border-radius: 4px;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        padding: 10px;
+        margin: 8px 0;
+        border-radius: 6px;
         font-size: 12px;
+        color: #000;
       ">
-        <div style="font-weight: 600;">
+        <div style="font-weight: 600; margin-bottom: 4px;">
           ${step.id}. [${step.operation.toUpperCase()}] ${step.shape}
         </div>
-        <div style="opacity: 0.9; margin-top: 2px;">
+        <div style="color: #666; margin-top: 4px; font-size: 11px;">
           ${JSON.stringify(step.params)}
         </div>
-        ${step.note ? `<div style="opacity: 0.7; font-size: 11px; margin-top: 2px;">${step.note}</div>` : ''}
+        ${step.note ? `<div style="color: #999; font-size: 11px; margin-top: 4px;">${step.note}</div>` : ''}
       </div>
     `).join('');
     
     this.elements.recipeSteps.innerHTML = `
-      <div style="font-size: 13px; margin-bottom: 6px; opacity: 0.9;">
+      <div style="font-size: 13px; margin-bottom: 10px; color: #000; font-weight: 500;">
         ${recipe.description}
       </div>
       ${stepsHTML}
@@ -457,7 +459,7 @@ class RepairPartGenerator {
     localStorage.setItem('preferred_mode', newMode);
     
     // Show loading
-    this.updateStatus('Switching modes...', 'orange');
+    this.updateStatus('⚙️ Switching modes...', '#666');
     
     // Reload the page to reinitialize
     window.location.reload();
@@ -481,14 +483,14 @@ class RepairPartGenerator {
     this.elements.measurements.style.display = 'none';
     this.updateGenerateButton();
     
-    this.updateStatus('Ready to measure', 'green');
+    this.updateStatus('Ready to measure', '#000');
     this.updateInstructions('Select a part type and take measurements');
   }
 
   /**
    * Update status message
    */
-  updateStatus(message, color = 'white') {
+  updateStatus(message, color = '#666') {
     this.elements.status.textContent = message;
     this.elements.status.style.color = color;
   }
