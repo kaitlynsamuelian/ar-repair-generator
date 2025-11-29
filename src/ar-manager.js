@@ -289,8 +289,8 @@ export class ARManager {
             minConfidence: 0.6
           });
 
-          // Create invisible reference plane on the marker for raycasting
-          const planeGeometry = new THREE.PlaneGeometry(1, 1);
+          // Create large invisible reference plane centered on marker for tap detection
+          const planeGeometry = new THREE.PlaneGeometry(10, 10); // Large plane for tapping anywhere
           const planeMaterial = new THREE.MeshBasicMaterial({
             color: 0x00ff88,
             transparent: true,
@@ -366,32 +366,19 @@ export class ARManager {
    * Handle screen tap for measurement points
    */
   onScreenTap(event) {
-    // In marker mode, only allow measurements when marker is detected
-    if (this.markerMode && !this.markerDetected) {
-      console.warn('⚠️ Marker not detected - cannot place measurement point');
-      return;
-    }
-
     // Calculate mouse position in normalized device coordinates
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-    // Raycast to find intersection
+    // Raycast to find intersection with reference plane
     this.raycaster.setFromCamera(this.mouse, this.camera);
     
     let intersection;
     if (this.referencePlane) {
       const intersects = this.raycaster.intersectObject(this.referencePlane, true);
       if (intersects.length > 0) {
-        intersection = intersects[0].point;
-        
-        // In marker mode, convert to world coordinates
-        if (this.markerMode && this.markerRoot) {
-          // Point is in marker's local space, convert to world space
-          this.markerRoot.updateMatrixWorld();
-          intersection.applyMatrix4(this.markerRoot.matrixWorld);
-        }
+        intersection = intersects[0].point.clone();
       }
     }
 

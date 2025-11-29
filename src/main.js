@@ -104,9 +104,9 @@ class RepairPartGenerator {
       } else {
         // Check if marker mode is enabled
         if (this.arManager.markerMode) {
-          this.updateStatus('🎯 Point camera at marker...', '#666');
+          this.updateStatus('📷 Camera Active - Point at marker for accuracy', '#666');
           this.elements.debugMode.textContent = 'Mode: AR Marker Tracking';
-          this.updateInstructions('📱 Point camera at the printed marker (50mm)');
+          this.updateInstructions('🎯 Show the printed marker (50mm) to enable accurate measurements');
         } else {
           this.updateStatus('📷 Camera Active - Tap to measure!', '#000');
           this.elements.debugMode.textContent = 'Mode: Camera (AR)';
@@ -129,11 +129,11 @@ class RepairPartGenerator {
    */
   onMarkerStatusChanged(detected) {
     if (detected) {
-      this.updateStatus('✅ Marker Detected - Tap to measure!', '#000');
-      this.updateInstructions('🎯 Marker locked! Tap on marker surface to place measurement points');
+      this.updateStatus('✅ Marker Detected - Accurate measurements enabled', '#000');
+      this.updateInstructions('📏 Tap anywhere on screen to measure. Marker provides scale accuracy.');
     } else {
-      this.updateStatus('⚠️ Marker Lost - Reposition camera', '#666');
-      this.updateInstructions('📱 Point camera at the printed marker to continue');
+      this.updateStatus('📷 Camera Active - Point at marker for accuracy', '#666');
+      this.updateInstructions('🎯 Show the printed marker to enable accurate measurements');
     }
   }
 
