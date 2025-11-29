@@ -26,7 +26,7 @@ export class ARManager {
     this.arToolkitContext = null;
     this.markerRoot = null; // Root object for marker-based positioning
     this.markerDetected = false; // Whether marker is currently visible
-    this.markerSize = 50; // Physical marker size in mm
+    this.markerSize = 50; // Physical markoptier size in mm
     this.onMarkerStatusChange = null; // Callback for marker status changes
   }
 
@@ -289,16 +289,15 @@ export class ARManager {
             minConfidence: 0.6
           });
 
-          // Create reference plane on the marker
+          // Create invisible reference plane on the marker for raycasting
           const planeGeometry = new THREE.PlaneGeometry(1, 1);
           const planeMaterial = new THREE.MeshBasicMaterial({
             color: 0x00ff88,
             transparent: true,
-            opacity: 0.3,
+            opacity: 0, // Invisible - just for hit detection
             side: THREE.DoubleSide
           });
           this.referencePlane = new THREE.Mesh(planeGeometry, planeMaterial);
-          this.referencePlane.rotation.x = -Math.PI / 2; // Lay flat on marker
           this.markerRoot.add(this.referencePlane);
 
           console.log('✅ AR.js marker tracking initialized');
