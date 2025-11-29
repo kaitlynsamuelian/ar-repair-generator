@@ -256,7 +256,7 @@ export class ARManager {
         
         // Create AR.js context for marker detection
         this.arToolkitContext = new THREEx.ArToolkitContext({
-          cameraParametersUrl: THREEx.ArToolkitContext.baseURL + '../data/data/camera_para.dat',
+          cameraParametersUrl: 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/data/data/camera_para.dat',
           detectionMode: 'mono_and_matrix',
           matrixCodeType: '3x3',
           maxDetectionRate: 60,
