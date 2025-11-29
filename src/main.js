@@ -164,6 +164,13 @@ class RepairPartGenerator {
       this.generateCustomShape();
     });
 
+    // Scale mode selection
+    document.querySelectorAll('.scale-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.selectScaleMode(btn.dataset.scale);
+      });
+    });
+
     // Controls toggle
     this.elements.controlsToggle.addEventListener('click', () => {
       this.toggleControls();
@@ -202,6 +209,24 @@ class RepairPartGenerator {
     // Update instructions
     const info = PART_TYPES[partType];
     this.updateInstructions(`Selected: ${info.emoji} ${info.name} - ${info.description}`);
+  }
+
+  /**
+   * Select scale mode (small/medium/large)
+   */
+  selectScaleMode(mode) {
+    // Update AR manager scale mode
+    this.arManager.setScaleMode(mode);
+    
+    // Update UI
+    document.querySelectorAll('.scale-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector(`[data-scale="${mode}"]`).classList.add('active');
+
+    // Show feedback
+    const scaleInfo = this.arManager.getScaleModeInfo();
+    this.updateStatus(`📏 Scale: ${scaleInfo.name} - ${scaleInfo.description}`, '#000');
   }
 
   /**

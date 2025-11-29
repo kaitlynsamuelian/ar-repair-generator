@@ -19,6 +19,14 @@ export class ARManager {
     // For demo mode (when AR not available)
     this.demoMode = false;
     this.referencePlane = null;
+    
+    // Scale mode for measurements (small/medium/large objects)
+    this.scaleMode = 'medium'; // 'small', 'medium', 'large'
+    this.scaleModes = {
+      small: { factor: 10, name: 'Small', description: 'Screws, washers, buttons (0-50mm)' },
+      medium: { factor: 50, name: 'Medium', description: 'Phone cases, brackets (50-200mm)' },
+      large: { factor: 100, name: 'Large', description: 'Fans, furniture (200mm+)' }
+    };
   }
 
   /**
@@ -335,9 +343,10 @@ export class ARManager {
     const p2 = this.points[1];
     const distance = p1.distanceTo(p2);
 
-    // Calculate distance in mm (assuming 1 unit = 10mm)
-    const distanceMM = Math.round(distance * 10 * 10) / 10;
-    console.log(`📏 Measurement: ${distanceMM}mm`);
+    // Calculate distance in mm using current scale mode
+    const scaleFactor = this.scaleModes[this.scaleMode].factor;
+    const distanceMM = Math.round(distance * scaleFactor * 10) / 10;
+    console.log(`📏 Measurement (${this.scaleMode}): ${distanceMM}mm (${distance} units × ${scaleFactor})`);
     
     const measurementId = `dist_${Object.keys(this.measurements).length + 1}`;
     this.measurements[measurementId] = distanceMM;
@@ -487,6 +496,31 @@ export class ARManager {
    */
   getMeasurements() {
     return { ...this.measurements };
+  }
+
+  /**
+   * Set scale mode (small/medium/large)
+   */
+  setScaleMode(mode) {
+    if (this.scaleModes[mode]) {
+      this.scaleMode = mode;
+      console.log(`📏 Scale mode changed to: ${this.scaleModes[mode].name}`);
+      
+      // Recalculate measurements if we have points
+      if (this.points.length === 2) {
+        this.calculateDistance();
+        if (this.onMeasurementUpdate) {
+          this.onMeasurementUpdate(this.measurements);
+        }
+      }
+    }
+  }
+
+  /**
+   * Get current scale mode info
+   */
+  getScaleModeInfo() {
+    return this.scaleModes[this.scaleMode];
   }
 
   /**
