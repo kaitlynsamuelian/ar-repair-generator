@@ -66,6 +66,11 @@ class RepairPartGenerator {
         this.onMeasurementsUpdated(measurements);
       };
 
+      // Setup marker status callback
+      this.arManager.onMarkerStatusChange = (detected) => {
+        this.onMarkerStatusChanged(detected);
+      };
+
       // Initialize AI Assistant
       const apiKey = this.getAPIKey();
       this.aiAssistant = new AIAssistant(apiKey);
@@ -97,9 +102,16 @@ class RepairPartGenerator {
           this.updateInstructions('🖱️ Click the green grid to place measurement points');
         }
       } else {
-        this.updateStatus('📷 Camera Active - Tap to measure!', '#000');
-        this.elements.debugMode.textContent = 'Mode: Camera (AR)';
-        this.updateInstructions('📱 Tap the screen to place measurement points on objects');
+        // Check if marker mode is enabled
+        if (this.arManager.markerMode) {
+          this.updateStatus('🎯 Point camera at marker...', '#666');
+          this.elements.debugMode.textContent = 'Mode: AR Marker Tracking';
+          this.updateInstructions('📱 Point camera at the printed marker (50mm)');
+        } else {
+          this.updateStatus('📷 Camera Active - Tap to measure!', '#000');
+          this.elements.debugMode.textContent = 'Mode: Camera (AR)';
+          this.updateInstructions('📱 Tap the screen to place measurement points on objects');
+        }
         
         // Update toggle button
         this.elements.modeToggleBtn.textContent = '🎮 Demo Mode';
@@ -109,6 +121,19 @@ class RepairPartGenerator {
     } catch (error) {
       console.error('Initialization failed:', error);
       this.updateStatus('❌ Failed to initialize - ' + error.message, '#000');
+    }
+  }
+
+  /**
+   * Handle marker detection status change
+   */
+  onMarkerStatusChanged(detected) {
+    if (detected) {
+      this.updateStatus('✅ Marker Detected - Tap to measure!', '#000');
+      this.updateInstructions('🎯 Marker locked! Tap on marker surface to place measurement points');
+    } else {
+      this.updateStatus('⚠️ Marker Lost - Reposition camera', '#666');
+      this.updateInstructions('📱 Point camera at the printed marker to continue');
     }
   }
 
